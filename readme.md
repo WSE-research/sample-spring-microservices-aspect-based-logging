@@ -1,92 +1,159 @@
-# Microservices with Spring Cloud Advanced Demo Project [![Twitter](https://img.shields.io/twitter/follow/piotr_minkowski.svg?style=social&logo=twitter&label=Follow%20Me)](https://twitter.com/piotr_minkowski)
+# Microservice Aspect-based logging - Example
 
-[![CircleCI](https://circleci.com/gh/piomin/sample-spring-microservices-new.svg?style=svg)](https://circleci.com/gh/piomin/sample-spring-microservices-new)
+This repository serves as a How-To-Guide to implement the aspects for system internal logging to provide user-centric, understandable and helpful explanations. The showcase for this approach was published as a demo paper and can be found under https://wse-research.org/publications/2025_ICWE_Schiese_LLM_debugging. 
 
-[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-black.svg)](https://sonarcloud.io/dashboard?id=piomin_sample-spring-microservices-new)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=piomin_sample-spring-microservices-new&metric=bugs)](https://sonarcloud.io/dashboard?id=piomin_sample-spring-microservices-new)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=piomin_sample-spring-microservices-new&metric=coverage)](https://sonarcloud.io/dashboard?id=piomin_sample-spring-microservices-new)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=piomin_sample-spring-microservices-new&metric=ncloc)](https://sonarcloud.io/dashboard?id=piomin_sample-spring-microservices-new)
+## Research background
 
-In this project I'm demonstrating you the most interesting features of [Spring Cloud Project](https://spring.io/projects/spring-cloud) for building microservice-based architecture.
+In our recent research, we were exploring the explainability of software systems, especially of distributed ones, as they are naturally more difficult to track and to understand. In our first approaches we focused on internal data like input and output of distributed services and tried to explain them by utilizing templates and different LLMs (see https://wse-research.org/publications/2024_ICWI_Schiese_Towards_LLM_generated_explanations_for_KGQA_systems). As the results were notable we further investigated the explanation capability by observing more atomic units in software systems (functions/methods). There we utilize input and output, just as we did for the components. Additionally, we also conduct source code and docstring if applicable. With these information given, we aim to produce even more detailed and helpful explanation and make further steps to explainable systems. 
 
------
+If you use this workflow for your projects we'd like to hear about your findings and suggestions. If you have any question, don't hestitate to contact us.
 
-I'm publishing on my blog and maintaining example repositories just as a hobby. But if you feel it's worth donating:
+# Requirements
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/piotrminkowski)
+Currently, the scope of our aspects is limited to API-based systems. Thus, an API-call is the scope of one logged process. The aspects realise this by _annotating_ Spring-annotated methods, in this case the following:
 
+`PostMapping, RequestMapping, GetMapping, PutMapping, DeleteMapping, PatchMapping`.
 
-## Getting Started 
-Currently you may find here some examples of microservices implementation using different projects from Spring Cloud. All the examples are divided into the branches and described in a separated articles on my blog. Here's a full list of available examples:
-1. (This example has been update to the latest version of Spring Cloud without Zuul) Using Spring Cloud Netflix **Eureka** as a discovery server, **Zuul** as a gateway, **OpenFeign** for communication and Spring Cloud Config Server. The example is available in the branch [master](https://github.com/piomin/sample-spring-microservices-new/tree/master). A detailed guide may be find in the following article: [Quick Guide to Microservices with Spring Boot 2.0, Eureka and Spring Cloud](https://piotrminkowski.com/2018/04/26/quick-guide-to-microservices-with-spring-boot-2-0-eureka-and-spring-cloud/)
-2. Using Spring Cloud Alibaba **Nacos** as a discovery and configuration server, **Zuul** and **OpenFeign**. The example is available in the branch [alibaba](https://github.com/piomin/sample-spring-microservices-new/tree/alibaba). A detailed guide may be find in the following article: [Microservices with Spring Cloud Alibaba](https://piotrminkowski.com/2018/11/15/microservices-with-spring-cloud-alibaba/)
-3. Using Spring Cloud with Spring Boot support for **GraphQL** for building microservices, **Apollo** for inter-service communication and **Eureka** as a discovery server. The example is available in the branch [graphql](https://github.com/piomin/sample-spring-microservices-new/tree/graphql). A detailed guide may be find in the following article: [GraphQL – The Future of Microservices?](https://piotrminkowski.com/2018/08/16/graphql-the-future-of-microservices/)
-4. Using Spring Boot and partially Spring Cloud for building microservices deployed on **OpenShift** with **Source-2-Image** mechanism. The example is available in the branch [openshift](https://github.com/piomin/sample-spring-microservices-new/tree/openshift). A detailed guide may be find in the following article: [Running Java Microservices on OpenShift using Source-2-Image](https://piotrminkowski.com/2019/01/08/running-java-microservices-on-openshift-using-source-2-image/)
-5. Using [Trampoline](http://ernestort.github.io/Trampoline/) for managing group of Spring Boot microservices locally. The example is available in the branch [trampoline](https://github.com/piomin/sample-spring-microservices-new/tree/trampoline). A detailed guide may be find in the following article: [Managing Spring Boot apps locally with Trampoline](https://piotrminkowski.com/2018/06/08/managing-spring-boot-apps-locally-with-trampoline/)
-6. Using Spring Boot 3, Micrometer Tracing and Springdoc for building microservices with Spring Cloud. A detailed guide may be found in the following article: [Microservices with Spring Boot 3 and Spring Cloud](https://piotrminkowski.com/2023/03/13/microservices-with-spring-boot-3-and-spring-cloud/)
+This means, your app needs to implement these, otherwise the aspect won't work.
 
-### Usage
+## Implementation
 
-Build the apps with images (we need ji for `config-service` since it contains `curl`):
-```shell
-$ mvn clean package -Pbuild-image
+The implementation of the workflow can be realized as follows:
+
+### Docstring + Sourcecode logging
+
+OPTIONAL: ...
+
+### Include the aspect and the plugin to your pom.xml
+
+The first step is to include the aspect and the plugin to weave the aspect to your codebase. To do so, include the following snippets to your `pom.xml`
+
+#### Plugin
+
+Documentation: https://github.com/dev-aspectj/aspectj-maven-plugin
+
+```
+          <plugin>
+            <groupId>dev.aspectj</groupId>
+            <artifactId>aspectj-maven-plugin</artifactId>
+            <version>1.14</version>
+            <dependencies>
+                <dependency>
+                    <groupId>org.aspectj</groupId>
+                    <artifactId>aspectjtools</artifactId>
+                    <version>1.9.24</version>
+                </dependency>
+            </dependencies>
+            <configuration>
+                <complianceLevel>21</complianceLevel>
+                <source>21</source>
+                <target>21</target>
+                <!-- Your AspectJ aspects as dependency -->
+                <aspectLibraries>
+                    <aspectLibrary>
+                        <groupId>org.wseresearch</groupId>
+                        <artifactId>generalizedaspect</artifactId>
+                    </aspectLibrary>
+                </aspectLibraries>
+            <outxml>true</outxml>
+            <outxmlfile>true</outxmlfile>
+            <XaddSerialVersionUID>true</XaddSerialVersionUID>
+            <showWeaveInfo>true</showWeaveInfo>
+            <verbose>true</verbose>
+            </configuration>
+            <executions>
+                <execution>
+                <goals>
+                    <goal>compile</goal>
+                    <goal>test-compile</goal>
+                </goals>
+                </execution>
+            </executions>
+        </plugin>
 ```
 
-Then run all the containers with `docker-compose`:
-```shell
-$ docker-compose up
+#### Dependency
+
+The aspect that will be woven in, needs to be included as dependency as well as the weaver dependency.
+
+```
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.24</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.wseresearch</groupId>
+            <artifactId>generalizedaspect</artifactId>
+            <version>(,1.0.0)</version>
+        </dependency>
 ```
 
-#### Run Locally
+#### Testing
 
-To run locally. Microservices are exposed on dynamic ports, so you can safely run them all on the same workstation.
+To test the implementation, build the maven project with `mvn clean install`.
 
-You can run Zipkin. However, it is not necessary:
-```shell
-docker run -d --name zipkin openzipkin/zipkin -p 9411:9411
+### Set up the proxy
+
+The [proxy](https://github.com/WSE-research/logging_proxy) handles the logging of the methods to an external graph DBMS and increases your app's speed, as the logging of hundreds or thousands of methods takes some time.
+
+FYI: Internally, the **generalizedaspect** (currently) has a hard coded endpoint to the proxy: `http://localhost:4000/`. 
+
+#### Settings:
+
+- `server.port` - Set the port
+- `virtuoso.endpoint` - Set the virtuoso endpoint via jdbc. If you're using this app inside docker you need to link to the virtuoso instance, e.g., `virtuoso.endpoint=jdbc:virtuoso://virtuoso:1111` (with virtuoso being the name of the docker container)
+- `virtuoso.username` and `virtuoso.password` - Set the username and the corresponding password. You'll need write permissions if not using dba user.
+- `logging.queue.fixedRate` - Set the time between queue checks.
+
+#### Build & run as jar
+
+Build: `mvn clean install`
+Run: `java -jar PATH_TO_JAR/logging_proxy-0.0.1.jar`
+
+#### Build & run with docker
+
+Build: `docker build .`
+Run: `docker run`
+
+For docker-compose, see below.
+
+### Testing the implementation
+
+If you now run your application with the included aspect, at the end of and API-request, the proxy should've been called to store the logged methods. To verify this, query the virtuoso instance (frontend accessible under port 8890) with the following query:
+
+```sparql
+PREFIX qa: <http://www.wdaqua.eu/qa#>
+PREFIX oa: <http://www.w3.org/ns/openannotation/core/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX x: <http://example.org#>
+
+SELECT *
+FROM <INSERT_GRAPH>
+WHERE {
+  ?s rdf:type qa:AnnotationOfLogMethod ;
+     prov:actedOnBehalfOf ?caller ;
+     qa:methodName ?methodName ;
+      x:input ?input ;
+      x:output ?output ;
+     oa:annotatedAt ?time;
+     oa:annotatedBy ?annotatedBy .
+}
 ```
 
-Begin with `config-service`:
-```shell
-cd config-service
-mvn spring-boot:run
-```
+Then, you should get some results. `?input` may be a blank node as this usually is a rdf:List, to get the values, adjust the query accordingly.
 
-Then, go to `discovery-service`:
-```shell
-cd config-service
-mvn spring-boot:run
-```
+## Explain your data using a web frontend
 
-Then, go run three microservices: `employee-service`, `department-service`, and `organization-service`, e.g.:
-```shell
-cd employee-service
-mvn spring-boot:run
-```
+We provide a frontend that utilizes templates and/or generative AI to create explanations based on the logged data. To set it up, follow https://github.com/WSE-research/frontend_aggregated_explanations.
 
-Finally, run `gateway-service`:
-```shell
-cd gateway-service
-mvn spring-boot:run
-```
+## FAQ and contact
 
-By default, Eureka is running on `8061` port, and gateway is exposed under `8060` port.\
-You can access global Swagger UI: http://localhost:8060/swagger-ui.html and switch between services. More details in the articles above.
+If you need help set everything up or if you're facing errors that are not covered in the following, contact us or me via e-mail (dennis.schiese@htwk-leipzig.de) or create an issue in this repository and link us.
 
+- ...
 
-In the most cases you need to have Maven and JDK8+. In the fourth example with OpenShift you will have to run **Minishift** on your machine. The best way to run the sample applications is with IDEs like IntelliJ IDEA or Eclipse.  
-
-## Architecture
-
-Our sample microservices-based system consists of the following modules:
-- **gateway-service** - a module that Spring Cloud Netflix Zuul for running Spring Boot application that acts as a proxy/gateway in our architecture.
-- **config-service** - a module that uses Spring Cloud Config Server for running configuration server in the `native` mode. The configuration files are placed on the classpath.
-- **discovery-service** - a module that depending on the example it uses Spring Cloud Netflix Eureka or Spring Cloud Netlix Alibaba Nacos as an embedded discovery server.
-- **employee-service** - a module containing the first of our sample microservices that allows to perform CRUD operation on in-memory repository of employees
-- **department-service** - a module containing the second of our sample microservices that allows to perform CRUD operation on in-memory repository of departments. It communicates with employee-service. 
-- **organization-service** - a module containing the third of our sample microservices that allows to perform CRUD operation on in-memory repository of organizations. It communicates with both employee-service and organization-service.
-
-The following picture illustrates the architecture described above.
-
-<img src="https://piotrminkowski.files.wordpress.com/2018/04/spring-cloud-1.png" title="Architecture"><br/>
 
