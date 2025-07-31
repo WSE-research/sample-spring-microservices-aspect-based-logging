@@ -51,7 +51,7 @@ Documentation: https://github.com/dev-aspectj/aspectj-maven-plugin
                 <!-- Your AspectJ aspects as dependency -->
                 <aspectLibraries>
                     <aspectLibrary>
-                        <groupId>org.wseresearch</groupId>
+                        <groupId>org.wse-research</groupId>
                         <artifactId>generalizedaspect</artifactId>
                     </aspectLibrary>
                 </aspectLibraries>
@@ -84,7 +84,7 @@ The aspect that will be woven in, needs to be included as dependency as well as 
         </dependency>
 
         <dependency>
-            <groupId>org.wseresearch</groupId>
+            <groupId>org.wse-research</groupId>
             <artifactId>generalizedaspect</artifactId>
             <version>(,1.0.0)</version>
         </dependency>
