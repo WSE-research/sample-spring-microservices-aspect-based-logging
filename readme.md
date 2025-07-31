@@ -20,9 +20,9 @@ This means, your app needs to implement these, otherwise the aspect won't work.
 
 The implementation of the workflow can be realized as follows:
 
-### Docstring + Sourcecode logging
+### Docstring + Sourcecode logging (optional)
 
-OPTIONAL: ...
+For the explanations, the inclusion of the source code and docstring can increase the quality. If you like, you can use our [source-code-processor](https://github.com/WSE-research/source-code-processor) that makes both accesible during runtime. 
 
 ### Include the aspect and the plugin to your pom.xml
 
